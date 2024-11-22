@@ -9,6 +9,8 @@ class Shellgpt < Formula
   
     def install
       bin.install "shellgpt.py" => "shellgpt"
+      system "python3", "-m", "pip", "install", "--upgrade", "pip"
+      system "python3", "-m", "pip", "install", "openai"
     end
   
     test do
