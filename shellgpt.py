@@ -221,9 +221,6 @@ def main():
 
     args = parser.parse_args()
 
-    # remove this    
-    print(args)
-
     if args.command == "init":
         init_command(args.key, args.model)
     elif args.command == "p":
