@@ -74,3 +74,12 @@ This project is licensed under the MIT License. Feel free to use and adapt it as
 ## 🛡️ Support
 
 If you encounter any issues or have questions, feel free to open an issue in this repository.
+
+
+## Release
+
+```
+git archive --format=tar.gz --output=shellgpt-vx.x.x.tar.gz vx.x.x
+shasum -a 256 shellgpt-vx.x.x.tar.gz
+```
+Modify `shellgpt.rb` with the SHA version

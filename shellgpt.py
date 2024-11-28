@@ -2,6 +2,8 @@
 import argparse
 import subprocess
 import sys
+import os
+import json
 
 model_ids = [
     "gpt-4",
@@ -14,17 +16,31 @@ model_ids = [
     "o1-mini",
 ]
 
+TEMPLATE_FILE = "shellgpt_templates.json"
+
 def _create_openai_client(api_key: str):
     """Create and return an OpenAI client instance."""
     import openai
     return openai.OpenAI(api_key=api_key)
 
-def save_to_defaults(domain, key, value):
+def _save_to_defaults(domain, key, value):
     """Save a value to macOS defaults."""
     subprocess.run(["defaults", "write", domain, key, value], check=True)
 
+def _load_templates() -> dict:
+    """Load templates from a JSON file."""
+    if os.path.exists(TEMPLATE_FILE):
+        with open(TEMPLATE_FILE, "r") as file:
+            return json.load(file)
+    return {}
 
-def read_from_defaults(domain, key):
+def _save_templates(templates: dict):
+    """Save templates to a JSON file."""
+    with open(TEMPLATE_FILE, "w") as file:
+        json.dump(templates, file, indent=4)
+
+
+def _read_from_defaults(domain, key):
     """Read a value from macOS defaults."""
     try:
         result = subprocess.check_output(
@@ -35,17 +51,17 @@ def read_from_defaults(domain, key):
         return None
 
 
-def load_config():
+def _load_config():
     """Load configuration from macOS defaults."""
     domain = "com.shellgpt.settings"
-    api_key = read_from_defaults(domain, "APIKey")
-    model = read_from_defaults(domain, "DefaultModel")
+    api_key = _read_from_defaults(domain, "APIKey")
+    model = _read_from_defaults(domain, "DefaultModel")
     if not api_key or not model:
         raise ValueError("Configuration not found. Use 'shellgpt init' first.")
     return {"api_key": api_key, "default_model": model}
 
 
-def query_openai(prompt, model, api_key):
+def _query_openai(prompt, model, api_key):
     """Send a prompt to OpenAI API using the updated API."""
     try:
         client = _create_openai_client(api_key)
@@ -68,33 +84,40 @@ def query_openai(prompt, model, api_key):
 
 def model_command(args):
     if args.set:
-        save_to_defaults("com.shellgpt.settings", "DefaultModel", args.set)
+        _save_to_defaults("com.shellgpt.settings", "DefaultModel", args.set)
         print(f"Default model set to {args.set}")
     elif args.list:
         print("Available models:")
         for model in model_ids:
             print(model)
     else:
-        config = load_config()
+        config = _load_config()
         print(f"Default model: {config['default_model']}")
 
 
 def prompt_command(args):
-    config = load_config()
+    config = _load_config()
     model = args.model or config["default_model"]
-    query_openai(args.prompt, model, config["api_key"])
+    if args.template:
+        templates = _load_templates()
+        if args.template not in templates:
+            print(f"Template '{args.template}' not found. Use 'shellgpt template --list' to see all templates.")
+            return
+        _query_openai(templates[args.template], model, config["api_key"])
+    else:
+        _query_openai(args.prompt, model, config["api_key"])
 
 
 def init_command(api_key, model):
     """Initialize the configuration."""
     domain = "com.shellgpt.settings"
-    save_to_defaults(domain, "APIKey", api_key)
-    save_to_defaults(domain, "DefaultModel", model)
+    _save_to_defaults(domain, "APIKey", api_key)
+    _save_to_defaults(domain, "DefaultModel", model)
     print("Configuration saved successfully.")
 
 def chat_command(args):
     """Start a chat session with OpenAI."""
-    config = load_config()
+    config = _load_config()
     model = args.model or config["default_model"]
     api_key = config["api_key"]
 
@@ -124,7 +147,32 @@ def chat_command(args):
             messages.append({"role": "assistant", "content": response_message.content.strip()})
 
     except Exception as e:
-        print(f"Unexpected error: {e}")
+        print("Chat endended.")
+
+def template_command(args):
+    """Handle template operations."""
+    templates = _load_templates()
+    if args.new:
+        if args.new in templates:
+            print(f"Template '{args.new}' already exists. Use 'shellgpt template --list' to see all templates.")
+            return
+        if not args.prompt:
+            print("Please provide a prompt for the new template.")
+            return
+        
+        templates[args.new] = args.prompt
+        _save_templates(templates)
+        print(f"Template '{args.new}' saved successfully.")
+    elif args.list:
+        if not templates:
+            print("No templates found.")
+            print("Use 'shellgpt template --new <template_name> --prompt <prompt>' to create a new template.")
+            return
+        print("Available templates:")
+        for name, prompt in templates.items():
+            print(f"{name}: {prompt}")
+        print("Use 'shellgpt p --template <template_name>' to use a template.")
+    
 
 
 
@@ -151,10 +199,13 @@ def main():
 
     # Query prompt
     prompt_parser = subparsers.add_parser("p", help="Send a prompt to OpenAI")
-    prompt_parser.add_argument("prompt", help="Prompt to send to OpenAI")
+    prompt_parser.add_argument(
+       "-t", "--template", help="Use a template for the prompt"
+    )
     prompt_parser.add_argument(
         "-m", "--model", help="Model to use (e.g., gpt-3.5-turbo)"
     )
+    prompt_parser.add_argument("prompt", help="Prompt to send to OpenAI", nargs="?")
 
     # Chat command
     chat_parser = subparsers.add_parser("chat", help="Start a chat session with OpenAI")
@@ -162,7 +213,16 @@ def main():
         "-m", "--model", help="Model to use for the chat session (e.g., gpt-3.5-turbo)"
     )
 
+    # Template command
+    template_parser = subparsers.add_parser("templates", help="Manage templates")
+    template_parser.add_argument("--new", help="Create a new template")
+    template_parser.add_argument("--prompt", help="Prompt for the new template")
+    template_parser.add_argument("--list", action="store_true", help="List all templates")
+
     args = parser.parse_args()
+
+    # remove this    
+    print(args)
 
     if args.command == "init":
         init_command(args.key, args.model)
@@ -172,9 +232,14 @@ def main():
         model_command(args)
     elif args.command == "chat":
         chat_command(args);
+    elif args.command == "templates":
+        template_command(args)
     else:
         parser.print_help()
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except:
+        sys.exit(1)

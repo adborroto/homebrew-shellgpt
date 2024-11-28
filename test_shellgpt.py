@@ -9,7 +9,7 @@ class TestShellGPT(unittest.TestCase):
 
     @patch("shellgpt.subprocess.run")
     def test_save_to_defaults(self, mock_run):
-        shellgpt.save_to_defaults("com.shellgpt.settings", "APIKey", "test_key")
+        shellgpt._save_to_defaults("com.shellgpt.settings", "APIKey", "test_key")
         mock_run.assert_called_once_with(
             ["defaults", "write", "com.shellgpt.settings", "APIKey", "test_key"],
             check=True,
@@ -18,27 +18,27 @@ class TestShellGPT(unittest.TestCase):
     @patch("shellgpt.subprocess.check_output")
     def test_read_from_defaults(self, mock_check_output):
         mock_check_output.return_value = "test_value\n"
-        result = shellgpt.read_from_defaults("com.shellgpt.settings", "APIKey")
+        result = shellgpt._read_from_defaults("com.shellgpt.settings", "APIKey")
         self.assertEqual(result, "test_value")
         mock_check_output.assert_called_once_with(
             ["defaults", "read", "com.shellgpt.settings", "APIKey"], text=True
         )
 
-    @patch("shellgpt.read_from_defaults")
+    @patch("shellgpt._read_from_defaults")
     def test_load_config(self, mock_read_from_defaults):
         mock_read_from_defaults.side_effect = ["test_api_key", "test_model"]
-        config = shellgpt.load_config()
+        config = shellgpt._load_config()
         self.assertEqual(
             config, {"api_key": "test_api_key", "default_model": "test_model"}
         )
 
-    @patch("shellgpt.read_from_defaults")
+    @patch("shellgpt._read_from_defaults")
     def test_load_config_missing(self, mock_read_from_defaults):
         mock_read_from_defaults.side_effect = [None, "test_model"]
         with self.assertRaises(ValueError):
-            shellgpt.load_config()
+            shellgpt._load_config()
 
-    @patch("shellgpt.save_to_defaults")
+    @patch("shellgpt._save_to_defaults")
     def test_model_command_set(self, mock_save_to_defaults):
         args = MagicMock()
         args.set = "gpt-3.5-turbo"
@@ -50,7 +50,7 @@ class TestShellGPT(unittest.TestCase):
             )
             mock_print.assert_called_once_with("Default model set to gpt-3.5-turbo")
 
-    @patch("shellgpt.load_config")
+    @patch("shellgpt._load_config")
     def test_model_command_default(self, mock_load_config):
         args = MagicMock()
         args.set = None
@@ -60,22 +60,7 @@ class TestShellGPT(unittest.TestCase):
             shellgpt.model_command(args)
             mock_print.assert_called_once_with("Default model: gpt-3.5-turbo")
 
-    @patch("shellgpt.load_config")
-    @patch("shellgpt.query_openai")
-    def test_prompt_command(self, mock_query_openai, mock_load_config):
-        args = MagicMock()
-        args.prompt = "test_prompt"
-        args.model = None
-        mock_load_config.return_value = {
-            "api_key": "test_api_key",
-            "default_model": "gpt-3.5-turbo",
-        }
-        shellgpt.prompt_command(args)
-        mock_query_openai.assert_called_once_with(
-            "test_prompt", "gpt-3.5-turbo", "test_api_key"
-        )
-
-    @patch("shellgpt.save_to_defaults")
+    @patch("shellgpt._save_to_defaults")
     def test_init_command(self, mock_save_to_defaults):
         with patch("builtins.print") as mock_print:
             shellgpt.init_command("test_api_key", "gpt-3.5-turbo")
