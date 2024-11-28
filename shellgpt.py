@@ -16,7 +16,7 @@ model_ids = [
     "o1-mini",
 ]
 
-TEMPLATE_FILE = "shellgpt_templates.json"
+TEMPLATE_FILE = os.path.expanduser("~/.shellgpt_templates.json")
 
 def _create_openai_client(api_key: str):
     """Create and return an OpenAI client instance."""
