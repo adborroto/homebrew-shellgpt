@@ -79,6 +79,7 @@ If you encounter any issues or have questions, feel free to open an issue in thi
 ## Release
 
 ```
+git tag -a vx.x.x -m "Release vx.x.x"   
 git archive --format=tar.gz --output=shellgpt-vx.x.x.tar.gz vx.x.x
 shasum -a 256 shellgpt-vx.x.x.tar.gz
 git push origin --tags 
