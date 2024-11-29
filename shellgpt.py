@@ -127,6 +127,7 @@ def chat_command(args):
 
         if not sys.stdin.isatty():
             context = sys.stdin.read().strip()
+            sys.stdin = open('/dev/tty')
 
         messages = [
             {"role": "system", "content": context},
