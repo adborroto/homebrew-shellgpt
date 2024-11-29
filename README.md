@@ -67,6 +67,28 @@ Pipe input from another command into `shellgpt`:
 cat book.txt | shellgpt p "Make a summary"
 ```
 
+### Use Templates
+
+Create and reuse predefined prompts:
+
+Create a template:
+```bash
+shellgpt templates --new "summary" --prompt "Summarize the text"
+```
+Use the template
+
+```bash
+cat book.txt | shellgpt p -t summary
+```
+
+### Chat
+Engage in an interactive session with GPT:
+
+```
+shellgpt chat
+cat book.txt | shellgpt chat --model gpt-3.5-turbo
+```
+
 ## 📝 License
 
 This project is licensed under the MIT License. Feel free to use and adapt it as needed.
