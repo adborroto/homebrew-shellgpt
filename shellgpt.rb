@@ -1,7 +1,7 @@
 class Shellgpt < Formula
     desc "ShellGPT: Interact with OpenAI from the shell"
     homepage "https://github.com/adborroto/homebrew-shellgpt"
-    url "https://github.com/adborroto/homebrew-shellgpt/archive/v1.2.2.tar.gz" 
+    url "https://github.com/adborroto/homebrew-shellgpt/archive/v1.2.3.tar.gz" 
     sha256 "cfec60bee8c702abd5855ba72916df601ea3a5b4d3982ebd1dca5de28c3800b4"
     license "MIT"
   
